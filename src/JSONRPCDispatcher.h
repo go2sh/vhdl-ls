@@ -15,11 +15,11 @@ public:
   JSONOutput(std::ostream &Out, std::ostream &Log) : Out(Out), Log(Log){};
 
   void writeMessage(const std::string &Message) {
-    Log << "-->\n" << Message << "\n" << std::flush;
+    Log << "-->\n" << Message << "\n";
     Log.flush();
 
-    Out << "Content-Length: " << Message.length() << "\r\n";
-    Out << "Content-Type: application/vscode-jsonrpc; charset=utf8\r\n\r\n" << Message << std::flush;
+    Out << "Content-Length: " << Message.length() << "\n";
+    Out << "Content-Type: application/vscode-jsonrpc; charset=utf8" << "\n\n" << Message;
     Out.flush();
   }
 

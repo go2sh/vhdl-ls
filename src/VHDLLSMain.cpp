@@ -6,7 +6,7 @@
 
 int main() {
   std::ofstream myfile ("/home/chris/example.txt");
-  JSONOutput Out(std::cout, std::cout);
+  JSONOutput Out(std::cout, std::cerr);
   VHDLLSPServer Server(Out);
 
   Server.runLSPServer(std::cin);

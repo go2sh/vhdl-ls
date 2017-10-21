@@ -7,15 +7,15 @@
 
 using json = nlohmann::json;
 
-template <typename Param>
+template <typename T>
 void VHDLLSPServer::RegisterCallback(
     const std::string &Method,
-    void (LSPCallbacks::*Handler)(RequestContext, Param)) {
+    void (LSPCallbacks::*Handler)(RequestContext, T)) {
   Dispatcher.RegisterHandler(
       Method, [=](RequestContext Context, json::object_t *RawParams) {
-        typename std::decay<Param>::type P;
-        P.Parse(RawParams);
-        (this->*Handler)(std::move(Context), P);
+        typename std::decay<T>::type Params;
+        Params.parse(RawParams);
+        (this->*Handler)(std::move(Context), Params);
       });
 }
 
