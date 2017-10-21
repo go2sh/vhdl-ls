@@ -10,6 +10,8 @@ class LSPCallbacks {
 
 public:
     virtual void onInitialize(RequestContext Context, InitializeParams &Params) = 0;
+    virtual void onHover(RequestContext Context, TextDocumentPositionParams &Params) = 0;
+    virtual void onDefinition(RequestContext Context, TextDocumentPositionParams &Params) = 0;
 };
 
 class VHDLLSPServer : public LSPCallbacks{
@@ -19,6 +21,8 @@ public:
 
     void runLSPServer(std::istream &In);
     virtual void onInitialize(RequestContext Context, InitializeParams &Params);
+    virtual void onHover(RequestContext Context, TextDocumentPositionParams &Params);
+    virtual void onDefinition(RequestContext Context, TextDocumentPositionParams &Params);
 
 private:
     JSONOutput &Out;

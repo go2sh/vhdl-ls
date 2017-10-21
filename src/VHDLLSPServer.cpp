@@ -24,9 +24,28 @@ void VHDLLSPServer::onInitialize(RequestContext Context,
   json h;
   json x;
   x["hoverProvider"] = true;
+  x["definitionProvider"] = true;
   x["textDocumentSync"] = 0;
   h["capabilities"] = x;
   Context.Reply(h);
+}
+
+void VHDLLSPServer::onHover(RequestContext Context, TextDocumentPositionParams &Params) {
+  Hover H;
+  H.Contents.push_back(MarkedString("Test 23"));
+  
+  Context.Reply(H.dump());
+}
+
+void VHDLLSPServer::onDefinition(RequestContext Context, TextDocumentPositionParams &Params) {
+  Range R;
+  R.Start.Line = 0;
+  R.Start.Character = 0;
+  R.End.Line = 0;
+  R.End.Character = 1;
+  Location L(Params.DocumentUri, R);
+
+  Context.Reply(L.dump());
 }
 
 void VHDLLSPServer::runLSPServer(std::istream &In) {
@@ -65,4 +84,6 @@ void VHDLLSPServer::runLSPServerLoop(std::istream &In) {
 
 void VHDLLSPServer::RegisterCallbacks() {
   RegisterCallback("initialize", &LSPCallbacks::onInitialize);
+  RegisterCallback("textDocument/hover", &LSPCallbacks::onHover);
+  RegisterCallback("textDocument/definition", &LSPCallbacks::onDefinition);
 }
