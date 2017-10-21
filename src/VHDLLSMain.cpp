@@ -5,8 +5,9 @@
 #include "VHDLLSPServer.h"
 
 int main() {
-  std::ofstream myfile ("C:\\example.txt");
-  VHDLLSPServer Server(JSONOutput(std::cout, myfile));
+  std::ofstream myfile ("/home/chris/example.txt");
+  JSONOutput Out(std::cout, std::cout);
+  VHDLLSPServer Server(Out);
 
   Server.runLSPServer(std::cin);
 

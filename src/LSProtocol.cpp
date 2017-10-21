@@ -38,11 +38,11 @@ void InitializeParams::Parse(json::object_t *Params) {
     if (Key == "trace") {
       if (Value.is_string()) {
         if (Value == "off")
-          TraceLevel = TraceLevel::Off;
+          TraceLevel = TraceLevels::Off;
         if (Value == "messages")
-          TraceLevel = TraceLevel::Messages;
+          TraceLevel = TraceLevels::Messages;
         if (Value == "verbose")
-          TraceLevel = TraceLevel::Verbose;
+          TraceLevel = TraceLevels::Verbose;
       } else {
       }
     }

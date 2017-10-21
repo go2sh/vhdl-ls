@@ -2,7 +2,10 @@
 #include <istream>
 #include <string>
 
+#include "json/json.hpp"
 #include "VHDLLSPServer.h"
+
+using json = nlohmann::json;
 
 template <typename Param>
 void VHDLLSPServer::RegisterCallback(
@@ -10,7 +13,7 @@ void VHDLLSPServer::RegisterCallback(
     void (LSPCallbacks::*Handler)(RequestContext, Param)) {
   Dispatcher.RegisterHandler(
       Method, [=](RequestContext Context, json::object_t *RawParams) {
-        std::decay<Param>::type P;
+        typename std::decay<Param>::type P;
         P.Parse(RawParams);
         (this->*Handler)(std::move(Context), P);
       });
@@ -46,7 +49,7 @@ void VHDLLSPServer::runLSPServerLoop(std::istream &In) {
       }
       if (Line.compare(0, LengthHeader.length(), LengthHeader) == 0) {
         Bytes = stoul(Line.substr(LengthHeader.length()));
-      } else if (Line.length() == 0) {
+      } else if (Line.length() == 0 && Bytes > 0) {
         break;
       } else {
         continue;

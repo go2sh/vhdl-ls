@@ -18,7 +18,8 @@ public:
     Log << "-->\n" << Message << "\n" << std::flush;
     Log.flush();
 
-    Out << "Content-Length: " << Message.length() << "\r\n\r\n" << Message << std::flush;
+    Out << "Content-Length: " << Message.length() << "\r\n";
+    Out << "Content-Type: application/vscode-jsonrpc; charset=utf8\r\n\r\n" << Message << std::flush;
     Out.flush();
   }
 
