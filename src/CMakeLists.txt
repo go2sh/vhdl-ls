@@ -1,6 +1,5 @@
 add_executable(vhdl-ls
     VHDLLSMain.cpp
-    LSProtocol.cpp
-    JSONRPCDispatcher.cpp
-    VHDLLSPServer.cpp
 )
+
+target_link_libraries(vhdl-ls vc lsp pthread)
