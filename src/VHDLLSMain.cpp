@@ -3,6 +3,37 @@
 #include <MessageConnection.h>
 #include <ServerConnection.h>
 
+#include "Diag/DiagnosticConsumer.h"
+#include "Diag/DiagnosticEngine.h"
+#include "Common/SourceManager.h"
+#include "Common/TokenKinds.h"
+#include "Parse/Lexer.h"
+#include "Parse/Parser.h"
+
+using namespace vc;
+
+class LspConsumer : public DiagnosticConsumer {
+    SourceManager Mgr;
+    lsp::LanguageClient *Client;
+public:
+    LspConsumer(const SourceManager &Mgr, lsp::LanguageClient *Client) : Mgr(Mgr), Client(Client) {}
+    virtual void handleDiagnostic(const Diagnostic & Diag) {
+      auto data = Mgr.getDecomposedLocation(Diag.getLocation());
+      uint32_t Line = Mgr.getLineNumber(data.first, data.second) - 1;
+      uint32_t Column = Mgr.getColumnNumber(data.first, data.second);
+      lsp::PublishDiagnosticsParams DiagP;
+      DiagP.Uri = "file://"+Mgr.getPath(data.first);
+      lsp::Diagnostic D;
+      D.Severity = lsp::DiagnosticSeverity::Error;
+      D.Message = Diag.getString();
+      D.Source = "vhdl-ls";
+      D.Range.Start = {Line,Column};
+      D.Range.End = {Line, Column + 1};
+      DiagP.Diagnostics.push_back(D);
+      Client->publishDiagnostics(DiagP);
+    }
+};
+
 class TestServer : public lsp::LanguageServer {
   lsp::LanguageClient *Client;
 public:
@@ -13,7 +44,7 @@ public:
     lsp::InitializeResult Result;
     Result.Capabilities.HoverProvider = true;
     Result.Capabilities.CompletionProvider = {true, {".","'"}};
-
+    Result.Capabilities.TextDocumentSync = { true, lsp::TextDocumentSyncKind::Full, false, false, {}};
     return Result;
   }
 
@@ -21,20 +52,6 @@ public:
     lsp::Hover H;
     H.Contents.Language = "vhdl";
     H.Contents.Value = "Works";
-    lsp::PublishDiagnosticsParams Diag;
-    Diag.Uri = "file:///home/chris/Coding/hdl/test.vhd";
-    lsp::Diagnostic D;
-    D.Severity = lsp::DiagnosticSeverity::Error;
-    D.Message = "Test message";
-    D.Source = "vhdl-ls";
-    D.Range.Start = {0,0};
-    D.Range.End = {0, 1};
-    Diag.Diagnostics.push_back(D);
-    Client->publishDiagnostics(Diag);
-    lsp::LogMessageParams L;
-    L.type = lsp::MessageType::Error;
-    L.message = "asd fff";
-    Client->showMessage(L);
     return H;
   }
 
@@ -44,6 +61,18 @@ public:
     I.Label = "hase hase";
     Result.push_back(I);
     return Result;
+  }
+
+  virtual void textDocumentDidChange(const lsp::TextDocumentDidChangeParams &Params) {
+    SourceManager SrcMgr;
+    SourceFile File = SrcMgr.createSourceFile(Params.TextDocument.Uri.substr(7));
+    SourceLocation Loc = SourceLocation::fromRawEncoding(1);
+    DiagnosticEngine Engine;
+    LspConsumer Consumer(SrcMgr,Client);
+    Engine.addConsumer(&Consumer);
+    Lexer lexer(Engine, Loc, SrcMgr.getBuffer(File));
+    Parser P(Engine, &lexer);
+    P.parseDesignFile();
   }
 };
 
