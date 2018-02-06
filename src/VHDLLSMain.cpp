@@ -10,6 +10,8 @@
 #include "Parse/Lexer.h"
 #include "Parse/Parser.h"
 
+#include <cstdlib>
+
 using namespace vc;
 
 class LspConsumer : public DiagnosticConsumer {
@@ -48,6 +50,14 @@ public:
     return Result;
   }
 
+  virtual void shutdown() {
+  
+  }
+
+  virtual void exit() {
+    std::exit(0);
+  }
+
   virtual lsp::Hover hover(const lsp::TextDocumentPositionParams & Params) {
     lsp::Hover H;
     H.Contents.Language = "vhdl";
@@ -60,7 +70,7 @@ public:
     std::vector<lsp::CompletionItem<lsp::EmptyCompletionData>> Result;
     I.Label = "hase hase";
     Result.push_back(I);
-    return Result;
+    return Result; 
   }
 
   virtual void textDocumentDidChange(const lsp::TextDocumentDidChangeParams &Params) {
