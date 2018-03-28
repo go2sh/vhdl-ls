@@ -1,7 +1,9 @@
-#include <LanguageServer.h>
-#include <LanguageClient.h>
-#include <MessageConnection.h>
-#include <ServerConnection.h>
+#include <lsp/LanguageServer.h>
+#include <lsp/LanguageClient.h>
+#include <lsp/MessageConnection.h>
+#include <lsp/LSPLogger.h>
+#include <lsp/lsp.h>
+
 
 #include "Diag/DiagnosticConsumer.h"
 #include "Diag/DiagnosticEngine.h"
@@ -11,6 +13,7 @@
 #include "Parse/Parser.h"
 
 #include <cstdlib>
+#include <asio.hpp>
 
 using namespace vc;
 
@@ -18,21 +21,29 @@ class LspConsumer : public DiagnosticConsumer {
     SourceManager Mgr;
     lsp::LanguageClient *Client;
 public:
+    std::map<std::string,lsp::PublishDiagnosticsParams> FileMap;
+
     LspConsumer(const SourceManager &Mgr, lsp::LanguageClient *Client) : Mgr(Mgr), Client(Client) {}
     virtual void handleDiagnostic(const Diagnostic & Diag) {
       auto data = Mgr.getDecomposedLocation(Diag.getLocation());
       uint32_t Line = Mgr.getLineNumber(data.first, data.second) - 1;
       uint32_t Column = Mgr.getColumnNumber(data.first, data.second);
-      lsp::PublishDiagnosticsParams DiagP;
-      DiagP.Uri = "file://"+Mgr.getPath(data.first);
+      std::string FileUri = "file://"+Mgr.getPath(data.first);
+      
+      auto DiagPElement = FileMap.find(FileUri);
+      if (DiagPElement == FileMap.end()) {
+        lsp::PublishDiagnosticsParams DiagP;
+        DiagP.Uri = FileUri;
+        DiagPElement = FileMap.insert(std::pair(FileUri, DiagP)).first;
+      }
+       
       lsp::Diagnostic D;
       D.Severity = lsp::DiagnosticSeverity::Error;
       D.Message = Diag.getString();
       D.Source = "vhdl-ls";
       D.Range.Start = {Line,Column};
       D.Range.End = {Line, Column + 1};
-      DiagP.Diagnostics.push_back(D);
-      Client->publishDiagnostics(DiagP);
+      DiagPElement->second.Diagnostics.push_back(D);
     }
 };
 
@@ -50,7 +61,7 @@ public:
     return Result;
   }
 
-  virtual void shutdown() {
+  virtual void shutdown() { 
   
   }
 
@@ -83,22 +94,27 @@ public:
     Lexer lexer(Engine, Loc, SrcMgr.getBuffer(File));
     Parser P(Engine, &lexer);
     P.parseDesignFile();
+    
+    for (auto Ele : Consumer.FileMap) {
+      Client->publishDiagnostics(Ele.second);
+    }
   }
 };
 
-int main(int argc, char **argv) {
-  lsp::StdinMessageReader Reader;
-  lsp::StdoutMessageWriter Writer;
-  lsp::StdIoLogger Log;
-  lsp::MessageConnection Connection(&Reader, &Writer, &Log);
-  lsp::ProxyLanguageClient Client(Connection);
+int main(int argc, char *argv[]) {
+  asio::io_service io_service;
+  lsp::MessageConnection *Connection = lsp::createAsioTCPConnection(io_service, std::string(argv[1]), std::string(argv[2]));
+  lsp::ProxyLanguageClient Client(*Connection);
   TestServer Server(&Client);
-  Server.connect(Connection);
+  Server.connect(*Connection);
+  lsp::LspLogger *Log = new lsp::LspLogger(&Client);
+  Connection->setLogger(Log);
+  Connection->listen();
 
   std::thread ConnectionThread =
-      std::thread([&Connection] { Connection.run(); });
+      std::thread([&io_service] { io_service.run(); });
   while (true) {
-    Connection.processMessageQueue();
+    Connection->processMessageQueue();
   }
 
   ConnectionThread.join();
