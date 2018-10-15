@@ -1,6 +1,6 @@
 #include <lsp/LanguageServer.h>
 #include <lsp/LanguageClient.h>
-#include <lsp/MessageConnection.h>
+#include <lsp/jsonrpc/MessageConnection.h>
 #include <lsp/LSPLogger.h>
 #include <lsp/lsp.h>
 
